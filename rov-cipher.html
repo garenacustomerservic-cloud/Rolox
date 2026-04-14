@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROV CIPHER</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c0f;
+    --panel: #0d1318;
+    --border: #1a2a1a;
+    --green: #00ff41;
+    --green-dim: #00cc33;
+    --green-dark: #003310;
+    --red: #ff3333;
+    --amber: #ffb000;
+    --text: #c8ffc8;
+    --text-dim: #557755;
+    --glow: 0 0 10px #00ff4166, 0 0 20px #00ff4122;
+    --glow-strong: 0 0 15px #00ff41aa, 0 0 30px #00ff4155;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.015) 2px, rgba(0,255,65,0.015) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .container { width: 100%; max-width: 700px; position: relative; z-index: 1; }
+  .header { text-align: center; margin-bottom: 32px; animation: fadeDown 0.6s ease; }
+  .logo {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    text-shadow: var(--glow-strong);
+    line-height: 1;
+  }
+  .logo span { color: var(--amber); text-shadow: 0 0 15px #ffb000aa; }
+  .tagline { font-size: 0.75rem; color: var(--text-dim); letter-spacing: 0.3em; margin-top: 6px; }
+  .divider {
+    width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    margin: 8px 0 4px;
+    box-shadow: var(--glow);
+  }
+  .mode-switch {
+    display: flex; gap: 0; margin-bottom: 24px;
+    border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+  }
+  .mode-btn {
+    flex: 1; padding: 12px; background: transparent; border: none;
+    color: var(--text-dim); font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem; font-weight: 600; letter-spacing: 0.15em;
+    cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .mode-btn.active { background: var(--green-dark); color: var(--green); text-shadow: var(--glow); }
+  .mode-btn:hover:not(.active) { color: var(--text); background: #111; }
+  .mode-btn::before {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+    background: var(--green); box-shadow: var(--glow); transform: scaleX(0); transition: transform 0.2s;
+  }
+  .mode-btn.active::before { transform: scaleX(1); }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+    padding: 24px; margin-bottom: 16px; position: relative; animation: fadeUp 0.5s ease;
+  }
+  .panel::before {
+    content: attr(data-label); position: absolute; top: -10px; left: 16px;
+    background: var(--panel); padding: 0 8px; font-size: 0.65rem;
+    letter-spacing: 0.25em; color: var(--green-dim);
+  }
+  label { display: block; font-size: 0.7rem; letter-spacing: 0.2em; color: var(--text-dim); margin-bottom: 8px; }
+  textarea {
+    width: 100%; background: #060a08; border: 1px solid #1a2a1a; border-radius: 2px;
+    color: var(--green); font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
+    padding: 12px; resize: vertical; min-height: 100px; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s; line-height: 1.6;
+  }
+  textarea:focus {
+    border-color: var(--green-dim);
+    box-shadow: 0 0 0 1px var(--green-dark), inset 0 0 20px rgba(0,255,65,0.03);
+  }
+  textarea::placeholder { color: var(--text-dim); opacity: 0.5; }
+  .exec-btn {
+    width: 100%; padding: 16px; background: var(--green-dark);
+    border: 1px solid var(--green-dim); border-radius: 4px; color: var(--green);
+    font-family: 'Rajdhani', sans-serif; font-size: 1.1rem; font-weight: 700;
+    letter-spacing: 0.3em; cursor: pointer; transition: all 0.2s;
+    text-shadow: var(--glow); position: relative; overflow: hidden; margin-bottom: 16px;
+  }
+  .exec-btn:hover { background: #005520; box-shadow: var(--glow-strong); }
+  .exec-btn:active { transform: scale(0.99); }
+  .exec-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(0,255,65,0.08) 50%, transparent 100%);
+    transform: translateX(-100%); transition: transform 0.4s;
+  }
+  .exec-btn:hover::after { transform: translateX(100%); }
+  .output-area { position: relative; }
+  .output-text {
+    width: 100%; background: #04080a; border: 1px solid var(--border); border-radius: 2px;
+    color: var(--amber); font-family: 'Share Tech Mono', monospace; font-size: 0.9rem;
+    padding: 12px; min-height: 100px; line-height: 1.6; word-break: break-all;
+    white-space: pre-wrap; text-shadow: 0 0 8px rgba(255,176,0,0.3);
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px; background: #111;
+    border: 1px solid var(--border); color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 0.65rem;
+    padding: 4px 10px; cursor: pointer; border-radius: 2px;
+    letter-spacing: 0.1em; transition: all 0.2s;
+  }
+  .copy-btn:hover { color: var(--green); border-color: var(--green-dim); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+  .map-toggle {
+    width: 100%; padding: 10px 16px; background: transparent;
+    border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; cursor: pointer;
+    text-align: left; letter-spacing: 0.1em; margin-bottom: 8px; transition: all 0.2s;
+  }
+  .map-toggle:hover { color: var(--text); border-color: #2a3a2a; }
+  .map-grid {
+    display: none; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 4px; padding: 16px; background: var(--panel);
+    border: 1px solid var(--border); border-radius: 4px;
+    margin-bottom: 16px; animation: fadeUp 0.3s ease;
+  }
+  .map-grid.visible { display: grid; }
+  .map-cell {
+    background: #060a08; border: 1px solid var(--border);
+    border-radius: 2px; padding: 6px 4px; text-align: center; font-size: 0.7rem;
+  }
+  .map-cell .orig { color: var(--text-dim); font-size: 0.6rem; }
+  .map-cell .enc { color: var(--green); font-weight: bold; }
+  .status-bar {
+    display: flex; justify-content: space-between; font-size: 0.65rem;
+    color: var(--text-dim); letter-spacing: 0.1em;
+    padding: 8px 0; border-top: 1px solid var(--border); margin-top: 12px;
+  }
+  .status-ok { color: var(--green-dim); }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0; } }
+  .cursor::after { content:'█'; animation:blink 1s infinite; color:var(--green); font-size:0.8em; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--green-dark); border-radius: 2px; }
+  .watermark { font-size:0.6rem; color:#1a2a1a; letter-spacing:0.2em; text-align:center; margin-top:24px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">R<span>O</span>V <span>C</span>IPHER</div>
+    <div class="divider"></div>
+    <div class="tagline">// ENKRIPSI INTERNAL — KUNCI: ROV //</div>
+  </div>
+
+  <div class="mode-switch">
+    <button class="mode-btn active" id="encBtn" onclick="setMode('enc')">⬆ ENKRIPSI</button>
+    <button class="mode-btn" id="decBtn" onclick="setMode('dec')">⬇ DEKRIPSI</button>
+  </div>
+
+  <div class="panel" data-label="// INPUT">
+    <label id="inputLabel">TEKS ASLI</label>
+    <textarea id="inputText" placeholder="Ketik pesan di sini..." oninput="processText()"></textarea>
+  </div>
+
+  <button class="exec-btn" onclick="processText()">
+    <span id="btnText">⬆ ENKRIPSI SEKARANG</span>
+  </button>
+
+  <div class="panel" data-label="// OUTPUT">
+    <div class="output-area">
+      <div class="output-text" id="outputText"><span class="cursor"></span></div>
+      <button class="copy-btn" id="copyBtn" onclick="copyOutput()">COPY</button>
+    </div>
+    <div class="status-bar">
+      <span id="statusLeft" class="status-ok">● READY</span>
+      <span id="statusRight">CHAR: 0 → 0</span>
+    </div>
+  </div>
+
+  <button class="map-toggle" onclick="toggleMap()">▶ LIHAT TABEL CIPHER MAP</button>
+  <div class="map-grid" id="mapGrid"></div>
+
+  <div class="watermark">REDZFLOW_ISEKAI_v2.0_CFT // ROV-CIPHER-INTERNAL</div>
+</div>
+
+<script>
+  // ================================================================
+  // ROV CIPHER — FIXED R=A, O=B, V=C | SISA: SEEDED RANDOM (STABIL)
+  // Seeded PRNG = mapping SAMA setiap kali file dibuka
+  // ================================================================
+
+  function mulberry32(seed) {
+    return function() {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function strSeed(str) {
+    let h = 1779033703;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = h << 13 | h >>> 19;
+    }
+    return h;
+  }
+
+  function buildCipherMap() {
+    const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const rand = mulberry32(strSeed('ROV_INTERNAL_CIPHER_2024'));
+
+    // Pool: semua huruf kecuali R, O, V (sudah dipakai fixed)
+    let pool = alpha.split('').filter(c => c !== 'R' && c !== 'O' && c !== 'V');
+
+    // Shuffle pool
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    // Fixed: A=R, B=O, C=V
+    const encMap = { A:'R', B:'O', C:'V' };
+
+    // Sisa plain D-Z (23 huruf) → pool acak
+    let pi = 0;
+    for (const c of alpha) {
+      if (!encMap[c]) { encMap[c] = pool[pi++]; }
+    }
+
+    // Reverse map
+    const decMap = {};
+    for (const [k, v] of Object.entries(encMap)) decMap[v] = k;
+
+    return { encMap, decMap };
+  }
+
+  const { encMap, decMap } = buildCipherMap();
+
+  function encrypt(text) {
+    return [...text].map(c => {
+      const u = c.toUpperCase();
+      if (!encMap[u]) return c;
+      return c === u ? encMap[u] : encMap[u].toLowerCase();
+    }).join('');
+  }
+
+  function decrypt(text) {
+    return [...text].map(c => {
+      const u = c.toUpperCase();
+      if (!decMap[u]) return c;
+      return c === u ? decMap[u] : decMap[u].toLowerCase();
+    }).join('');
+  }
+
+  // ================================================================
+  // UI
+  // ================================================================
+  let currentMode = 'enc';
+
+  function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('encBtn').classList.toggle('active', mode === 'enc');
+    document.getElementById('decBtn').classList.toggle('active', mode === 'dec');
+    document.getElementById('inputLabel').textContent = mode === 'enc' ? 'TEKS ASLI' : 'TEKS TERENKRIPSI';
+    document.getElementById('btnText').textContent = mode === 'enc' ? '⬆ ENKRIPSI SEKARANG' : '⬇ DEKRIPSI SEKARANG';
+    processText();
+  }
+
+  function processText() {
+    const input = document.getElementById('inputText').value;
+    const outEl = document.getElementById('outputText');
+    if (!input.trim()) {
+      outEl.innerHTML = '<span class="cursor"></span>';
+      document.getElementById('statusLeft').textContent = '● READY';
+      document.getElementById('statusRight').textContent = 'CHAR: 0 → 0';
+      return;
+    }
+    const output = currentMode === 'enc' ? encrypt(input) : decrypt(input);
+    outEl.textContent = output;
+    document.getElementById('statusLeft').textContent = currentMode === 'enc' ? '● ENCRYPTED' : '● DECRYPTED';
+    document.getElementById('statusRight').textContent = `CHAR: ${input.length} → ${output.length}`;
+  }
+
+  function copyOutput() {
+    const text = document.getElementById('outputText').textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = 'COPIED ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function toggleMap() {
+    const grid = document.getElementById('mapGrid');
+    const btn = document.querySelector('.map-toggle');
+    const visible = grid.classList.toggle('visible');
+    btn.textContent = visible ? '▼ SEMBUNYIKAN CIPHER MAP' : '▶ LIHAT TABEL CIPHER MAP';
+    if (visible && grid.children.length === 0) {
+      for (const c of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+        const cell = document.createElement('div');
+        cell.className = 'map-cell';
+        cell.innerHTML = `<div class="orig">${c}</div><div class="enc">${encMap[c]}</div>`;
+        grid.appendChild(cell);
+      }
+    }
+  }
+</script>
+</body>
+</html>
