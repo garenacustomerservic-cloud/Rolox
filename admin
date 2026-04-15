@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ROV ADMIN PANEL</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080c0f;--panel:#0d1318;--border:#1a2a1a;
+    --green:#00ff41;--green-dim:#00cc33;--green-dark:#003310;
+    --red:#ff3333;--red-dark:#1a0000;--amber:#ffb000;--amber-dark:#1a1000;
+    --blue:#00aaff;--blue-dark:#001a2a;
+    --text:#c8ffc8;--text-dim:#557755;
+    --glow:0 0 10px #00ff4166,0 0 20px #00ff4122;
+    --glow-strong:0 0 15px #00ff41aa,0 0 30px #00ff4155;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.012) 2px,rgba(0,255,65,.012) 4px);pointer-events:none;z-index:0;}
+
+  /* LOCK */
+  #lockScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:20px;}
+  .lock-logo{font-family:'Rajdhani',sans-serif;font-size:clamp(2rem,8vw,4rem);font-weight:700;color:var(--green);text-shadow:var(--glow-strong);letter-spacing:.2em;}
+  .lock-logo span{color:var(--amber);}
+  .lock-box{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:28px 32px;display:flex;flex-direction:column;gap:14px;width:min(360px,92vw);}
+  .lock-box label{font-size:.65rem;letter-spacing:.2em;color:var(--text-dim);}
+  .lock-input{width:100%;background:#060a08;border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:'Share Tech Mono',monospace;font-size:1rem;padding:10px 12px;outline:none;transition:border-color .2s;letter-spacing:.1em;}
+  .lock-input:focus{border-color:var(--green-dim);}
+  .lock-error{font-size:.7rem;color:var(--red);min-height:18px;}
+  .btn-green{width:100%;padding:12px;background:var(--green-dark);border:1px solid var(--green-dim);border-radius:4px;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.25em;cursor:pointer;transition:all .2s;text-shadow:var(--glow);}
+  .btn-green:hover{background:#005520;box-shadow:var(--glow-strong);}
+  .btn-green:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* MAIN */
+  .container{width:100%;max-width:960px;position:relative;z-index:1;}
+  .header{text-align:center;margin-bottom:24px;animation:fadeDown .6s ease;}
+  .logo{font-family:'Rajdhani',sans-serif;font-size:clamp(1.8rem,6vw,3.2rem);font-weight:700;letter-spacing:.2em;color:var(--green);text-shadow:var(--glow-strong);line-height:1;}
+  .logo span{color:var(--amber);}
+  .tagline{font-size:.65rem;color:var(--text-dim);letter-spacing:.3em;margin-top:6px;}
+  .divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);margin:8px 0 4px;box-shadow:var(--glow);}
+
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px;}
+  .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:14px 16px;}
+  .stat-val{font-family:'Rajdhani',sans-serif;font-size:2rem;font-weight:700;line-height:1;}
+  .stat-val.green{color:var(--green);text-shadow:var(--glow);}
+  .stat-val.amber{color:var(--amber);}
+  .stat-val.red{color:var(--red);}
+  .stat-val.blue{color:var(--blue);}
+  .stat-label{font-size:.6rem;color:var(--text-dim);letter-spacing:.15em;margin-top:4px;}
+
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:10px;flex-wrap:wrap;}
+  .conn-row{display:flex;align-items:center;gap:8px;}
+  .conn-dot{width:8px;height:8px;border-radius:50%;background:var(--text-dim);}
+  .conn-dot.ok{background:var(--green);box-shadow:0 0 6px var(--green);}
+  .conn-dot.err{background:var(--red);box-shadow:0 0 6px var(--red);}
+  .conn-label{font-size:.65rem;color:var(--text-dim);letter-spacing:.1em;}
+  .icon-btn{background:var(--panel);border:1px solid var(--border);border-radius:4px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.7rem;padding:8px 14px;cursor:pointer;letter-spacing:.1em;transition:all .2s;}
+  .icon-btn:hover{color:var(--text);border-color:#2a3a2a;}
+  .icon-btn.danger{border-color:#3a0000;color:#993333;}
+  .icon-btn.danger:hover{background:var(--red-dark);border-color:var(--red);color:var(--red);}
+
+  .search-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .search-input{flex:1;min-width:160px;background:#060a08;border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:'Share Tech Mono',monospace;font-size:.85rem;padding:9px 12px;outline:none;transition:border-color .2s;}
+  .search-input:focus{border-color:var(--green-dim);}
+  .search-input::placeholder{color:var(--text-dim);opacity:.6;}
+  .filter-btn{background:var(--panel);border:1px solid var(--border);border-radius:3px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.7rem;padding:9px 14px;cursor:pointer;letter-spacing:.1em;transition:all .2s;}
+  .filter-btn.active{color:var(--green);border-color:var(--green-dim);background:var(--green-dark);}
+  .filter-btn:hover:not(.active){color:var(--text);}
+
+  .add-panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:20px;margin-bottom:16px;position:relative;}
+  .add-panel::before{content:'// TAMBAH USER';position:absolute;top:-10px;left:16px;background:var(--panel);padding:0 8px;font-size:.65rem;letter-spacing:.25em;color:var(--green-dim);}
+  .add-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px;}
+  .add-grid input,.add-grid select{background:#060a08;border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:'Share Tech Mono',monospace;font-size:.85rem;padding:9px 12px;outline:none;transition:border-color .2s;width:100%;}
+  .add-grid input:focus,.add-grid select:focus{border-color:var(--green-dim);}
+  .add-grid select option{background:var(--bg);}
+  .form-lbl{font-size:.6rem;color:var(--text-dim);letter-spacing:.15em;margin-bottom:4px;}
+  .btn-add{width:100%;padding:10px;background:var(--green-dark);border:1px solid var(--green-dim);border-radius:3px;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.2em;cursor:pointer;transition:all .2s;text-shadow:var(--glow);}
+  .btn-add:hover{background:#005520;box-shadow:var(--glow);}
+  .form-err{font-size:.65rem;color:var(--red);margin-top:6px;min-height:16px;}
+
+  .table-wrap{background:var(--panel);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:16px;}
+  .table-head{display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1.8fr;padding:10px 14px;border-bottom:2px solid var(--border);font-size:.6rem;color:var(--text-dim);letter-spacing:.2em;}
+  .user-row{display:grid;grid-template-columns:2fr 2fr 1fr 1fr 1.8fr;padding:12px 14px;border-bottom:1px solid #0d1a0d;align-items:center;transition:background .15s;animation:fadeUp .3s ease;}
+  .user-row:hover{background:#0a120a;}
+  .user-row:last-child{border-bottom:none;}
+  .cell-user{display:flex;flex-direction:column;gap:2px;}
+  .cell-username{font-size:.85rem;color:var(--text);}
+  .cell-id{font-size:.55rem;color:var(--text-dim);}
+  .cell-pwd{font-size:.75rem;color:var(--text-dim);cursor:pointer;user-select:none;}
+  .cell-pwd:hover{color:var(--amber);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:2px;font-size:.6rem;letter-spacing:.1em;font-weight:600;}
+  .badge-admin{background:#001a10;border:1px solid var(--green-dim);color:var(--green);}
+  .badge-member{background:#0a0a00;border:1px solid #3a3000;color:#aaaa00;}
+  .badge-aktif{background:#001a10;border:1px solid #005520;color:var(--green-dim);}
+  .badge-banned{background:var(--red-dark);border:1px solid #5a0000;color:var(--red);}
+  .row-actions{display:flex;gap:5px;flex-wrap:wrap;}
+  .act-btn{background:transparent;border:1px solid var(--border);border-radius:2px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:4px 7px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+  .act-btn:hover{color:var(--text);border-color:#3a4a3a;}
+  .act-btn.ban{border-color:#3a0000;color:#993333;}
+  .act-btn.ban:hover{border-color:var(--red);color:var(--red);background:var(--red-dark);}
+  .act-btn.unban{border-color:#003a20;color:#33aa66;}
+  .act-btn.unban:hover{border-color:var(--green-dim);color:var(--green);background:var(--green-dark);}
+  .act-btn.del{border-color:#4a0000;color:#cc3333;}
+  .act-btn.del:hover{border-color:var(--red);color:var(--red);background:var(--red-dark);}
+  .act-btn.promote{border-color:#002a3a;color:#3388bb;}
+  .act-btn.promote:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dark);}
+  .no-users{padding:32px;text-align:center;font-size:.7rem;color:var(--text-dim);}
+
+  /* MODAL */
+  #modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;align-items:center;justify-content:center;}
+  #modal.open{display:flex;}
+  .modal-box{background:var(--panel);border:1px solid var(--green-dim);border-radius:6px;padding:28px;width:min(440px,92vw);animation:fadeUp .3s ease;}
+  .modal-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;color:var(--green);letter-spacing:.2em;margin-bottom:18px;text-shadow:var(--glow);}
+  .modal-grid{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;}
+  .modal-grid label{font-size:.6rem;color:var(--text-dim);letter-spacing:.15em;margin-bottom:3px;}
+  .modal-grid input,.modal-grid select{width:100%;background:#060a08;border:1px solid var(--border);border-radius:3px;color:var(--green);font-family:'Share Tech Mono',monospace;font-size:.9rem;padding:9px 12px;outline:none;transition:border-color .2s;}
+  .modal-grid input:focus,.modal-grid select:focus{border-color:var(--green-dim);}
+  .modal-grid select option{background:var(--bg);}
+  .modal-actions{display:flex;gap:8px;}
+  .btn-save{flex:1;padding:10px;background:var(--green-dark);border:1px solid var(--green-dim);border-radius:3px;color:var(--green);font-family:'Rajdhani',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:.2em;cursor:pointer;transition:all .2s;}
+  .btn-save:hover{background:#005520;}
+  .btn-cancel{padding:10px 20px;background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.8rem;cursor:pointer;transition:all .2s;}
+  .btn-cancel:hover{color:var(--text);}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--green-dim);border-radius:4px;padding:10px 18px;font-size:.75rem;color:var(--green);letter-spacing:.1em;z-index:999;transform:translateY(60px);opacity:0;transition:all .3s;box-shadow:var(--glow);}
+  #toast.show{transform:translateY(0);opacity:1;}
+  #toast.err{border-color:var(--red);color:var(--red);}
+
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes shake{0%,100%{transform:translateX(0);}20%,60%{transform:translateX(-6px);}40%,80%{transform:translateX(6px);}}
+  .shake{animation:shake .35s ease;}
+  ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--green-dark);border-radius:2px;}
+  .watermark{font-size:.55rem;color:#1a2a1a;letter-spacing:.2em;text-align:center;margin-top:20px;}
+
+  @media(max-width:600px){
+    .table-head,.user-row{grid-template-columns:2fr 1fr 1fr;}
+    .table-head>*:nth-child(2),.user-row>*:nth-child(2),
+    .table-head>*:nth-child(3),.user-row>*:nth-child(3){display:none;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOCK -->
+<div id="lockScreen">
+  <div class="lock-logo">R<span>O</span>V <span>A</span>DMIN</div>
+  <div style="font-size:.65rem;color:var(--text-dim);letter-spacing:.3em;">// PANEL ADMIN — AKSES TERBATAS //</div>
+  <div class="lock-box" id="lockBox">
+    <label>ADMIN PASSWORD</label>
+    <input class="lock-input" type="password" id="adminPwd" placeholder="Password admin..." onkeydown="if(event.key==='Enter')adminLogin()"/>
+    <div class="lock-error" id="adminErr"></div>
+    <button class="btn-green" id="adminLoginBtn" onclick="adminLogin()">MASUK PANEL</button>
+    <div style="font-size:.6rem;color:var(--text-dim);text-align:center;">Default: <span style="color:var(--amber);">rov2024</span></div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ EDIT USER</div>
+    <div class="modal-grid">
+      <div><label>USERNAME</label><input type="text" id="editUsername"/></div>
+      <div><label>PASSWORD BARU (kosong = tidak berubah)</label><input type="password" id="editPassword" placeholder="Password baru..."/></div>
+      <div><label>ROLE</label><select id="editRole"><option value="member">Member</option><option value="admin">Admin</option></select></div>
+      <div><label>STATUS</label><select id="editStatus"><option value="aktif">Aktif</option><option value="banned">Banned</option></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">BATAL</button>
+      <button class="btn-save" onclick="saveEdit()">💾 SIMPAN</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- MAIN -->
+<div class="container" id="mainApp" style="display:none;">
+  <div class="header">
+    <div class="logo">R<span>O</span>V <span>A</span>DMIN</div>
+    <div class="divider"></div>
+    <div class="tagline">// MANAJEMEN USER ROVCHIPER — REALTIME //</div>
+  </div>
+
+  <div class="top-bar">
+    <div class="conn-row">
+      <div class="conn-dot" id="connDot"></div>
+      <span class="conn-label" id="connLabel">MENGHUBUNGKAN...</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="icon-btn" onclick="exportUsers()">📤 EXPORT JSON</button>
+      <button class="icon-btn danger" onclick="adminLock()">🔒 LOCK</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-val green" id="statTotal">0</div><div class="stat-label">TOTAL USER</div></div>
+    <div class="stat-card"><div class="stat-val blue" id="statAdmin">0</div><div class="stat-label">ADMIN</div></div>
+    <div class="stat-card"><div class="stat-val amber" id="statMember">0</div><div class="stat-label">MEMBER</div></div>
+    <div class="stat-card"><div class="stat-val red" id="statBanned">0</div><div class="stat-label">BANNED</div></div>
+  </div>
+
+  <div class="search-row">
+    <input type="text" class="search-input" id="searchInput" placeholder="Cari username..." oninput="renderTable()"/>
+    <button class="filter-btn active" id="f-all" onclick="setFilter('all')">SEMUA</button>
+    <button class="filter-btn" id="f-admin" onclick="setFilter('admin')">ADMIN</button>
+    <button class="filter-btn" id="f-member" onclick="setFilter('member')">MEMBER</button>
+    <button class="filter-btn" id="f-banned" onclick="setFilter('banned')">BANNED</button>
+  </div>
+
+  <div class="add-panel">
+    <div class="add-grid">
+      <div><div class="form-lbl">USERNAME</div><input type="text" id="newUsername" placeholder="Username..."/></div>
+      <div><div class="form-lbl">PASSWORD</div><input type="password" id="newPassword" placeholder="Password..."/></div>
+      <div><div class="form-lbl">ROLE</div><select id="newRole"><option value="member">Member</option><option value="admin">Admin</option></select></div>
+      <div><div class="form-lbl">STATUS</div><select id="newStatus"><option value="aktif">Aktif</option><option value="banned">Banned</option></select></div>
+    </div>
+    <button class="btn-add" onclick="addUser()">➕ TAMBAH USER</button>
+    <div class="form-err" id="formErr"></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-head">
+      <div>USERNAME</div><div>PASSWORD</div><div>ROLE</div><div>STATUS</div><div>AKSI</div>
+    </div>
+    <div id="userTable"><div class="no-users">Memuat data...</div></div>
+  </div>
+
+  <div class="watermark">REDZFLOW_ISEKAI_v2.0_CFT // ROV-ADMIN-PANEL</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, remove, push, update, get }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ══════════════════════════════════════
+// FIREBASE CONFIG ASLI
+// ══════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyBRoXbx1Ecn9EDgxwer9bLmw_Q5Pkqz2ew",
+  authDomain: "rovchiper.firebaseapp.com",
+  databaseURL: "https://rovchiper-default-rtdb.firebaseio.com",
+  projectId: "rovchiper",
+  storageBucket: "rovchiper.firebasestorage.app",
+  messagingSenderId: "905182600527",
+  appId: "1:905182600527:web:f22623ed2b5f739241b93a",
+  measurementId: "G-SDFEL0ELXY"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ══════════════════════════════════════
+// ADMIN LOCAL AUTH
+// ══════════════════════════════════════
+const ADMIN_KEY = 'rov_admin_v3';
+const DEFAULT_HASH = hashStr('rov2024');
+
+function hashStr(s){
+  let h=5381;
+  for(let i=0;i<s.length;i++)h=((h<<5)+h)^s.charCodeAt(i);
+  return(h>>>0).toString(16)+s.length+'adm3';
+}
+
+window.adminLogin = function(){
+  const p = document.getElementById('adminPwd').value;
+  const stored = localStorage.getItem(ADMIN_KEY) || DEFAULT_HASH;
+  if(hashStr(p) === stored){
+    document.getElementById('lockScreen').style.display='none';
+    document.getElementById('mainApp').style.display='block';
+    initFirebase();
+  }else{
+    document.getElementById('adminErr').textContent='Password admin salah.';
+    shakeEl('lockBox');
+    document.getElementById('adminPwd').value='';
+  }
+};
+
+window.adminLock = function(){
+  document.getElementById('mainApp').style.display='none';
+  document.getElementById('lockScreen').style.display='flex';
+  document.getElementById('adminPwd').value='';
+  document.getElementById('adminErr').textContent='';
+};
+
+// ══════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════
+let allUsers = {};
+let currentFilter = 'all';
+let editingId = null;
+
+function initFirebase(){
+  const usersRef = ref(db, 'rov_users');
+  onValue(usersRef, (snap) => {
+    allUsers = snap.val() || {};
+    updateStats();
+    renderTable();
+    setConn(true);
+  }, (err) => {
+    setConn(false);
+    toast('Gagal terhubung ke Firebase: ' + err.message, true);
+  });
+}
+
+function setConn(ok){
+  document.getElementById('connDot').className='conn-dot '+(ok?'ok':'err');
+  document.getElementById('connLabel').textContent=ok?'● TERHUBUNG — REALTIME':'● KONEKSI GAGAL';
+}
+
+function updateStats(){
+  const arr = Object.values(allUsers);
+  document.getElementById('statTotal').textContent = arr.length;
+  document.getElementById('statAdmin').textContent = arr.filter(u=>u.role==='admin').length;
+  document.getElementById('statMember').textContent = arr.filter(u=>u.role==='member').length;
+  document.getElementById('statBanned').textContent = arr.filter(u=>u.status==='banned').length;
+}
+
+// ══════════════════════════════════════
+// FILTER & TABLE
+// ══════════════════════════════════════
+window.setFilter = function(f){
+  currentFilter = f;
+  ['all','admin','member','banned'].forEach(x=>{
+    document.getElementById('f-'+x).classList.toggle('active', x===f);
+  });
+  renderTable();
+};
+
+window.renderTable = function(){
+  const search = (document.getElementById('searchInput').value||'').toLowerCase();
+  const tbl = document.getElementById('userTable');
+  const entries = Object.entries(allUsers).filter(([id,u])=>{
+    const ms = u.username.toLowerCase().includes(search);
+    const mf = currentFilter==='all' ||
+      (currentFilter==='banned' && u.status==='banned') ||
+      (currentFilter!=='banned' && u.role===currentFilter && u.status!=='banned');
+    return ms && mf;
+  });
+  if(!entries.length){tbl.innerHTML='<div class="no-users">Tidak ada user ditemukan.</div>';return;}
+  tbl.innerHTML = entries.map(([id,u])=>`
+    <div class="user-row">
+      <div class="cell-user">
+        <span class="cell-username">${esc(u.username)}</span>
+        <span class="cell-id">${id.slice(0,12)}...</span>
+      </div>
+      <div class="cell-pwd" onclick="this.textContent=this.textContent==='••••••••'?'${esc(u.password)}':'••••••••'">••••••••</div>
+      <div><span class="badge badge-${u.role}">${u.role.toUpperCase()}</span></div>
+      <div><span class="badge badge-${u.status}">${u.status.toUpperCase()}</span></div>
+      <div class="row-actions">
+        <button class="act-btn" onclick="openEdit('${id}')">✏️</button>
+        ${u.status==='banned'
+          ?`<button class="act-btn unban" onclick="toggleBan('${id}','aktif')">✅ UNBAN</button>`
+          :`<button class="act-btn ban" onclick="toggleBan('${id}','banned')">🚫 BAN</button>`
+        }
+        ${u.role==='member'
+          ?`<button class="act-btn promote" onclick="promoteUser('${id}','admin')">⬆ ADMIN</button>`
+          :`<button class="act-btn promote" onclick="promoteUser('${id}','member')">⬇ MEMBER</button>`
+        }
+        <button class="act-btn del" onclick="deleteUser('${id}','${esc(u.username)}')">🗑</button>
+      </div>
+    </div>`).join('');
+};
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ══════════════════════════════════════
+// CRUD
+// ══════════════════════════════════════
+window.addUser = async function(){
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value.trim();
+  const role = document.getElementById('newRole').value;
+  const status = document.getElementById('newStatus').value;
+  const err = document.getElementById('formErr');
+  if(!username){err.textContent='Username wajib diisi.';return;}
+  if(!password){err.textContent='Password wajib diisi.';return;}
+  if(password.length<4){err.textContent='Password minimal 4 karakter.';return;}
+  const dup = Object.values(allUsers).find(u=>u.username.toLowerCase()===username.toLowerCase());
+  if(dup){err.textContent='Username sudah dipakai.';return;}
+  const newRef = push(ref(db,'rov_users'));
+  await set(newRef,{username,password,role,status,createdAt:new Date().toISOString()});
+  err.textContent='';
+  document.getElementById('newUsername').value='';
+  document.getElementById('newPassword').value='';
+  toast('User '+username+' ditambahkan!');
+};
+
+window.deleteUser = async function(id,username){
+  if(!confirm('Hapus user "'+username+'"?'))return;
+  await remove(ref(db,'rov_users/'+id));
+  toast('User '+username+' dihapus.');
+};
+
+window.toggleBan = async function(id,status){
+  await update(ref(db,'rov_users/'+id),{status});
+  toast(status==='banned'?'User dibanned.':'User di-unban.');
+};
+
+window.promoteUser = async function(id,role){
+  await update(ref(db,'rov_users/'+id),{role});
+  toast('Role diubah ke '+role+'.');
+};
+
+window.openEdit = function(id){
+  const u = allUsers[id];
+  if(!u)return;
+  editingId = id;
+  document.getElementById('editUsername').value = u.username;
+  document.getElementById('editPassword').value = '';
+  document.getElementById('editRole').value = u.role;
+  document.getElementById('editStatus').value = u.status;
+  document.getElementById('modal').classList.add('open');
+};
+
+window.closeModal = function(){
+  document.getElementById('modal').classList.remove('open');
+  editingId = null;
+};
+
+window.saveEdit = async function(){
+  if(!editingId)return;
+  const username = document.getElementById('editUsername').value.trim();
+  const password = document.getElementById('editPassword').value.trim();
+  const role = document.getElementById('editRole').value;
+  const status = document.getElementById('editStatus').value;
+  if(!username){toast('Username tidak boleh kosong.',true);return;}
+  const updates = {username,role,status};
+  if(password) updates.password = password;
+  await update(ref(db,'rov_users/'+editingId),updates);
+  closeModal();
+  toast('User berhasil diupdate!');
+};
+
+window.exportUsers = function(){
+  const data = JSON.stringify(allUsers,null,2);
+  const blob = new Blob([data],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'rov-users-'+Date.now()+'.json';
+  a.click();URL.revokeObjectURL(a.href);
+  toast('Data diexport.');
+};
+
+// ══════════════════════════════════════
+// TOAST & UTILS
+// ══════════════════════════════════════
+window.toast = function(msg,isErr=false){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show'+(isErr?' err':'');
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>{t.className='';},2800);
+};
+
+window.shakeEl = function(id){
+  const el = document.getElementById(id);
+  el.classList.remove('shake');void el.offsetWidth;
+  el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),400);
+};
+
+// init
+setTimeout(()=>document.getElementById('adminPwd').focus(),100);
+</script>
+</body>
+</html>
